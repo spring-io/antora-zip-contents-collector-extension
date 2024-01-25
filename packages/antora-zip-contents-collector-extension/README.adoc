@@ -1,0 +1,6 @@
+= Antora Zip Contents Collector Extension
+The Antora Zip Contents Collector extension enables you to import the contents of zip files into the content aggregate or content catalog to supplement files from the static, conventional content roots Antora has already loaded. Zip files can be loaded from a remote location or from the local disk.
+
+Typically this extension is used to load supplemental content that is generated and published when a project is built, but isn't directly committed into the git repository.
+
+See https://github.com/spring-io/antora-zip-contents-collector-extension/ for more details and usage instructions.

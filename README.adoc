@@ -1,0 +1,336 @@
+= Antora Zip Contents Collector Extension
+:url-antora-docs: https://docs.antora.org/antora/latest/
+:url-extension-docs: https://docs.antora.org/antora/latest/extend/extensions/
+
+The Antora Zip Contents Extension augments the content aggregation capabilities of Antora.
+Using this extension you can import the contents of a remote or local zip file into the content aggregate.
+
+WARNING: This is ALPHA software!
+That means the extension is experimental and likely to change at any time without notice.
+You're welcome to test it and give feedback, but take caution when relying on it in a production site.
+
+
+
+== Overview
+The Antora Zip Contents Collector extension enables you to import the contents of zip files into the content aggregate or content catalog to supplement files from the static, conventional content roots Antora has already loaded. Zip files can be loaded from a remote location or from the local disk.
+
+Typically this extension is used to load supplemental content that is generated and published when a project is built, but isn't directly committed into the git repository.
+
+
+
+== Prerequisites
+In order to use this extension, you must be using Node.js 20 and {url-antora-docs}[Antora 3.1.0].
+The following instructions assume you've already set up an Antora playbook file (i.e., _antora-playbook.yml_) to build your site.
+
+To learn about using extensions with Antora, see the {url-extension-docs}[Antora extension documentation].
+
+
+
+== Install
+Use the following command to install the extension into your playbook project:
+
+[,console]
+----
+$ npm i @springio/antora-zip-contents-collector-extension
+----
+
+
+
+== Register
+Open your Antora playbook file and register the extension as an entry in the `antora.extensions` key.
+If this key doesn't yet exist in your playbook, first create it.
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+----
+
+
+
+== Configure
+The collector operates on list of included zip files that are specified under the `ext.zip-contents-collector` key.
+Includes listed under this key are combined with playbook configuration in order to build the full URL of this zip file.
+
+For example, the following configuration will tells the collector to include `extra` and `more`:
+
+.antora.yml
+[,yaml]
+----
+name: my-project
+version: true
+# ...
+ext:
+  zip_contents_collector:
+    include: [extra, more]
+----
+
+The full URLs are defined by including `locations` in the extension configuration in the playbook file.
+The URL must include a `${name}` placeholder which will be expanded to the include name.
+For example, the following configuration expands the includes we defined above to the urls `https://example.com/extra.zip` and `https://example.com/more.zip`
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    locations:
+    - url: https://example.com/${name}.zip
+----
+
+The contents of the zip are included per content root (aka origin), declared in the component descriptor.
+If the zip file contains (_antora.yml_) the root of the archive, that file is parsed and the data is overlaid onto the existing metadata of the current component version bucket in the content aggregate.
+
+NOTE: Defining the URLs in the playbook file is more flexible than putting URLs directly in the `antora.yml`.
+It allows you to change where zip files are hosted after the fact and allows local playbooks to consume zip files from different locations.
+
+
+
+=== Content Destination
+If you want to include zip contents in a specific destination you can use the `module` and `path` properties.
+
+For example, we can update our `include` list of `[extra, more]` to an expanded form and provide additional destination properties:
+
+.antora.yml
+[,yaml]
+----
+name: my-project
+version: true
+# ...
+ext:
+  zip_contents_collector:
+    include:
+    - name: extra
+      module: ROOT
+      path: pages
+    - name: more
+      module: my-module-a
+      path: examples/code
+----
+
+The example above will include the contents of `extra.zip` under `ROOT/pages` and `more.zip` under `my-module-a/examples/code`.
+
+
+
+=== Version Specific Downloads
+Typically projects will have a different zip file for each version of the software that they release.
+For example, the zip file might contain API documentation that changes between v1.1 and v1.2 of a project.
+
+In order to support version specific files, you can use `${version}` anywhere in your URL.
+
+The `${version}` value is obtained by reading a specific file relative to the branch of the git repository being used for the origin.
+Use `version_file` to specify the name of the file to load.
+Currently version information can only be loaded from a `gradle.properties` file or a `pom.xml` files.
+
+The following shows a version specific URL based of the value in a `gradle.properties` file:
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    version_file: gradle.properties
+    locations:
+    - url: https://repo.example.com/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
+----
+
+
+
+=== Snapshot, Milestone, Release Candidate and Release URLs
+Some projects use different artifact repositories for different version types.
+If you need to specify a different URL based on the version type, you can use add a `for-version-type` key with one of the following values:
+
+* `snapshot` - Applies only when `${version}` ends in `-SNAPSHOT`
+* `milestone` - Applies only when `${version}` ends in `-M<N>` (where `<N>` is a number)
+* `rc` - Applies only when `${version}` ends in `-RC[<N>]` (where `<N>` is a number)
+* `release` - Applies only when `${version}` does not match any of the above
+
+You may also specify a list if multiple version types are accepted.
+
+The following shows how to configure a different repository for release artifacts:
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    version_file: gradle.properties
+    locations:
+    - url: https://repo.example.com/preview/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
+      for-version-type: [snapshot, milestone, rc]
+    - url: https://repo.example.com/release/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
+      for-version-type: release
+----
+
+
+
+=== Classifier Properties
+In addition to the `name` property you may also use a `classifier` property to help you build URLs.
+Classifiers are common when publishing artifacts to a Maven repository.
+
+You can declare `classifier` values in your `antora.yml` file then refer to them in your playbook URLs using `${classifier}`.
+
+Here's a typical example:
+
+.antora.yml
+[,yaml]
+----
+name: my-project
+version: true
+# ...
+ext:
+  zip_contents_collector:
+    include:
+    - name: my-project
+    - classifier: docs
+    - name: my-project
+    - classifier: api
+----
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    version_file: gradle.properties
+    locations:
+    - url: https://repo.example.com/com/example/myproject/${name}/${version}/${name}-${version}-${classifier}.zip
+----
+
+
+
+=== HTTP Headers and Authorization
+Additional HTTP headers can be sent when downloading zip files by using `http_headers` configuration.
+Configuration can be applied per `location:` or globally under extension configuration.
+
+You can use `${env.<NAME>}` to refer to environment variables that hold secret values.
+
+The following will add an "Authorization" header to all remote requests:
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    version_file: gradle.properties
+    http_headers:
+    - "Authorization: Bearer ${env.MY_SECRET_TOKEN}"
+    locations:
+    - url: https://repo.example.com/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
+----
+
+
+
+=== Local Files
+In addition to loading zip files from a remote location, you can also load local files or directories.
+This can be useful when running a build that uses a local Antora playbook.
+
+Any `url` not starting with `http:` or `https:` is considered to be local and will be loaded from the source worktree.
+
+.local-antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+  locations:
+    - url: build/generated/my-project-docs-${name}.zip
+----
+
+NOTE: Local locations can only be loaded from content sources the are also local.
+You cannot add content for a local zip file if you content source is a remote git repository.
+
+
+
+=== Multiple Locations
+You can define more than one location in your antora playbook file if you to resolve zip files from multiple places.
+Locations are considered in the order that they are defined.
+The first location that successfully resolves the zip file will be used.
+
+For example, the following configuration will try to download from a local location and fallback to downloading from example.com.
+
+.local-antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+  locations:
+    - url: build/generated/my-project-docs-${name}.zip
+    - url: https://repo.example.com/${name}.zip
+----
+
+
+
+=== Adding to the Content Catalog
+By default zip content is added during the `contentAggregated` event, which occurs after the content has been aggregated and before the content is classified.
+This allows the zip file to container `.adoc` files which will be merged into the aggregated and later converted to HTML.
+It also allows additional `antora.yml` content to be merged.
+
+If you have a zip that already contains HTML files or other assets that should be directly served, you can configure them to be added them during the `contentClassified` event.
+A typical example would be adding API documentation (such as javadoc) where the HTML is generated by a different tool.
+
+To specify that include should be merged during the `contentClassified` event you can set the `destination` to `content-catalog`:
+
+.antora.yml
+[,yaml]
+----
+name: my-project
+version: true
+# ...
+ext:
+  zip_contents_collector:
+    include:
+    - name: api
+      destination: content-catalog
+----
+
+NOTE: You must ensure that your `antora.yml` files has a valid `version` value after all aggregate zip contents has been merged.
+
+In addition to the `destination`, you can also specify the `module` and `path` properties to merge content to a specific destination:
+
+.antora.yml
+[,yaml]
+----
+name: my-project
+version: true
+# ...
+ext:
+  zip_contents_collector:
+    include:
+    - name: api
+      destination: content-catalog
+      module: my-module
+      path: api/java
+----
+
+
+
+=== Using the Playbook to Include Content
+It's sometimes useful to be able to specify included content from your Antora Playbook file rather than the `antora.yml` file.
+Typically this is used in a local playbook file that's part of a modular build.
+
+To define includes in the playbook file you can use the `always_include` configuration key.
+The syntax is the same as the `include` config specified in your `antora.yml` file.
+
+For example:
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    always_include:
+    - name: api
+      destination: content-catalog
+      module: my-module
+      path: api/java
+----

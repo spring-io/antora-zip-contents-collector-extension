@@ -1,0 +1,8 @@
+/.cache/
+/.idea/
+/.nyc_output/
+/build/
+/node_modules/
+/packages/*/node_modules/
+/reports/
+/packages/antora-zip-contents-collector-extension/test/work/

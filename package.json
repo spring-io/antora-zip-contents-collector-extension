@@ -1,0 +1,57 @@
+{
+  "private": true,
+  "name": "antora-zip-contents-collector-extension",
+  "version": "1.0.0-alpha.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "exports": {
+    ".": "./packages/antora-zip-contents-collector-extension/lib/index.js"
+  },
+  "scripts": {
+    "build": "npm test && npm run lint",
+    "coverage": "nyc _mocha",
+    "coverage-strict": "nyc --branches=100 --lines=100 _mocha",
+    "format": "node npm/format.js packages/${npm_config_package},npm",
+    "lint": "eslint \"{docs,npm}/**/*.js\" \"packages/${npm_config_package:-*}/{lib,test}/**/*.js\"",
+    "test": "_mocha",
+    "version": "node npm/version.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "eslint": "~8.27",
+    "eslint-config-standard": "~17.0",
+    "mocha": "~10.1",
+    "nyc": "~15.1",
+    "prettier-eslint": "~15.0"
+  },
+  "nyc": {
+    "cache": true,
+    "cacheDir": "node_modules/.cache/nyc",
+    "include": [
+      "packages/*/{bin,lib}/**/*.js"
+    ],
+    "exclude": [
+      "packages/antora-zip-contents-collector-test-harness/lib/*.js"
+    ],
+    "reporter": [
+      "cobertura",
+      "lcov",
+      "text"
+    ],
+    "reportDir": "reports"
+  },
+  "dependencies": {
+    "@antora/content-classifier": "^3.1.7",
+    "@antora/ui-loader": "^3.1.4",
+    "@vscode/gulp-vinyl-zip": "^2.5.0",
+    "archiver": "^6.0.1",
+    "downdoc": "^1.0.2-stable",
+    "express": "^4.18.2",
+    "express-basic-auth": "^1.2.1",
+    "fast-xml-parser": "^4.3.4",
+    "simple-get": "^4.0.1"
+  }
+}
