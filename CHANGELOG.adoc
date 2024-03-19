@@ -4,6 +4,6 @@
 This is a summary of all notable changes to the Antora Zip Contents Collector Extension by release.
 For a detailed view of what's changed, refer to the {url-repo}/commits[commit history] of this project.
 
-== Unreleased
+== 1.0.0-alpha.1 (2024-03-19)
 
 _Initial prerelease of the software._

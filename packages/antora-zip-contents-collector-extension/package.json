@@ -1,6 +1,6 @@
 {
     "name": "@springio/antora-zip-contents-collector-extension",
-    "version": "1.0.0-alpha.0",
+    "version": "1.0.0-alpha.1",
     "description": "An Antora extension that runs a collects the content from local or remote zip files.",
     "license": "Apache-2.0",
     "author": "Spring (https://spring.io)",
@@ -9,14 +9,15 @@
     ],
     "homepage": "https://antora.org",
     "repository": {
-        "url": "https://github.com/spring-io/antora-zip-contents-collector-extension"},
+        "url": "https://github.com/spring-io/antora-zip-contents-collector-extension"
+    },
     "bugs": {
         "url": "https://github.com/spring-io/antora-zip-contents-collector-extension/issues"
     },
     "scripts": {
         "postpublish": "downdoc --postpublish",
         "prepublishOnly": "downdoc --prepublish"
-    },    
+    },
     "main": "lib/index.js",
     "exports": {
         ".": "./lib/index.js"
@@ -28,11 +29,11 @@
         "node": ">=20.0.0"
     },
     "dependencies": {
-      "@antora/expand-path-helper": "~2.0",
-      "cache-directory": "~2.0",
-      "glob-stream": "~7.0",
-      "isomorphic-git": "~1.21",
-      "js-yaml": "~4.1"      
+        "@antora/expand-path-helper": "~2.0",
+        "cache-directory": "~2.0",
+        "glob-stream": "~7.0",
+        "isomorphic-git": "~1.21",
+        "js-yaml": "~4.1"
     },
     "devDependencies": {
         "@antora/content-aggregator": "~3.1"
@@ -44,5 +45,4 @@
         "asciidoctor",
         "documentation"
     ]
-  }
-  
+}
