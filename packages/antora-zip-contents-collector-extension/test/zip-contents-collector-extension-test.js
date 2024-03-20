@@ -591,7 +591,7 @@ describe('zip contents collector extension', () => {
 
     it('should use local zip and collect files', async () => {
       const extensionConfig = () => ({
-        locations: [{ url: 'build/${name}.zip' }, { url: 'build/${name}.zip' }],
+        locations: [{ url: 'build/missing/${name}.zip' }, { url: 'build/${name}.zip' }],
       })
       const componentConfig = { include: ['start-page'] }
       await runScenario({

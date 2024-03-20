@@ -195,7 +195,8 @@ function register ({ config, downloadLog }) {
             logger.trace(`Skipping local file URL ${url} due to missing worktree`)
             continue
           }
-          return ospath.join(worktree, ...url.split('/'))
+          const localFile = ospath.join(worktree, ...url.split('/'))
+          if (fs.existsSync(localFile)) return localFile
         }
       }
     }
