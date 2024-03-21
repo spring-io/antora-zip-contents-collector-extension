@@ -98,7 +98,7 @@ function register ({ config, downloadLog }) {
 
   async function uiLoaded ({ uiCatalog }) {
     const layouts = uiCatalog.findByType('layout')
-    if (layouts.filter((file) => file.path === 'layouts/bare.hbs').length === 0) {
+    if (layouts.filter((file) => posixify(file.path) === 'layouts/bare.hbs').length === 0) {
       logger.trace("Adding 'bare' layout to UI catalog")
       const file = new Vinyl({
         path: 'layouts/bare.hbs',
@@ -363,8 +363,8 @@ function register ({ config, downloadLog }) {
     destination = include.path && (destination ? ospath.join(destination, include.path) : include.path)
     file = asAntoraFile(include, zipFile, file, destination)
     logger.trace(`Adding ${file.path} to content aggregate`)
-    const existing = componentVersionBucket.files.find(({ path: candidate }) => candidate === file.path)
-    if (file.path === 'antora.yml' || file.path === 'modules/antora.yml') {
+    const existing = componentVersionBucket.files.find((candidate) => candidate.src.path === file.src.path)
+    if (file.src.path === 'antora.yml' || file.src.path === 'modules/antora.yml') {
       const generated = yaml.load(file.contents)
       Object.assign(componentVersionBucket, generated)
       if (!('prerelease' in generated)) delete componentVersionBucket.prerelease
@@ -383,7 +383,6 @@ function register ({ config, downloadLog }) {
       module: moduleName,
       family: 'page',
     })
-    file.src.relative = file.relative
     const pageAttributes = {
       'page-layout': 'bare',
       'page-component-name': component.name,
@@ -392,7 +391,7 @@ function register ({ config, downloadLog }) {
       'page-component-display-version': version.displayVersion,
       'page-component-title': component.title,
       'page-module': moduleName,
-      'page-relative': file.src.relative,
+      'page-relative': file.src.path,
       'page-origin-type': file.src.origin.type,
       'page-origin-url': file.src.origin.url,
     }
@@ -407,11 +406,19 @@ function register ({ config, downloadLog }) {
     const extname = ospath.extname(path)
     const stem = basename.slice(0, basename.length - extname.length)
     const mediaType = mimeTypes.lookup(extname) || fallbackMediaType
-    const result = Object.assign(file.clone(), {
-      src: { origin: include.origin, path, basename, stem, extname, abspath: path, mediaType, zipFile, ...src },
-    })
-    result.path = path
-    return result
+    src = {
+      origin: include.origin,
+      path,
+      basename,
+      stem,
+      extname,
+      abspath: path,
+      relative: path,
+      mediaType,
+      zipFile,
+      ...src,
+    }
+    return { path, contents: file.contents, stat: file.stat, src }
   }
 
   async function cleanupCollectorCacheDir (collectorCacheDir) {

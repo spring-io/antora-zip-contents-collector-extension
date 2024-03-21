@@ -25,6 +25,8 @@ const os = require('os')
 const ospath = require('path')
 const Vinyl = require('vinyl')
 
+const posixify = ospath.sep === '\\' ? (p) => p.replace(/\\/g, '/') : (p) => p
+
 const FIXTURES_DIR = ospath.join(__dirname, 'fixtures')
 const FIXTURES_REPOS_DIR = ospath.join(FIXTURES_DIR, 'repos')
 const FIXTURES_ZIPS_DIR = ospath.join(FIXTURES_DIR, 'zips')
@@ -94,7 +96,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -116,7 +118,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -142,7 +144,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -165,8 +167,8 @@ describe('zip contents collector extension', () => {
         httpPath: '/',
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(2)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/c1.adoc')
-          expect(contentAggregate[0].files[1].path).to.equal('modules/ROOT/pages/c2.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/c1.adoc')
+          expect(contentAggregate[0].files[1].src.path).to.equal('modules/ROOT/pages/c2.adoc')
         },
       })
     })
@@ -188,7 +190,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -264,7 +266,7 @@ describe('zip contents collector extension', () => {
         httpPath: '/v1.2.3',
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(2)
-          const page = contentAggregate[0].files.find((it) => it.relative === 'modules/ROOT/pages/index.adoc')
+          const page = contentAggregate[0].files.find((it) => it.src.path === 'modules/ROOT/pages/index.adoc')
           expect(page).to.be.exist()
         },
       })
@@ -284,7 +286,7 @@ describe('zip contents collector extension', () => {
         httpPath: '/v1.2.3',
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(2)
-          const page = contentAggregate[0].files.find((it) => it.relative === 'modules/ROOT/pages/index.adoc')
+          const page = contentAggregate[0].files.find((it) => it.src.path === 'modules/ROOT/pages/index.adoc')
           expect(page).to.be.exist()
         },
       })
@@ -304,7 +306,7 @@ describe('zip contents collector extension', () => {
         httpPath: '/v1.2.3',
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(2)
-          const page = contentAggregate[0].files.find((it) => it.relative === 'modules/ROOT/pages/index.adoc')
+          const page = contentAggregate[0].files.find((it) => it.src.path === 'modules/ROOT/pages/index.adoc')
           expect(page).to.be.exist()
         },
       })
@@ -325,7 +327,7 @@ describe('zip contents collector extension', () => {
         httpPath: '/v1.2.3',
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(2)
-          const page = contentAggregate[0].files.find((it) => it.relative === 'modules/ROOT/pages/index.adoc')
+          const page = contentAggregate[0].files.find((it) => it.src.path === 'modules/ROOT/pages/index.adoc')
           expect(page).to.be.exist()
         },
       })
@@ -356,7 +358,7 @@ describe('zip contents collector extension', () => {
         downloadLog,
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(2)
-          const page = contentAggregate[0].files.find((it) => it.relative === 'modules/ROOT/pages/index.adoc')
+          const page = contentAggregate[0].files.find((it) => it.src.path === 'modules/ROOT/pages/index.adoc')
           expect(page).to.be.exist()
           expect(downloadLog.length).to.equal(1)
           expect(downloadLog[0].url).to.equal(`http://localhost:${httpServerPort}/release/v1.2.3/start-page.zip`)
@@ -386,6 +388,7 @@ describe('zip contents collector extension', () => {
           expect(files[0]).to.have.property('stat')
           expect(files[0].src).to.eql({
             path: 'modules/ROOT/pages/index.adoc',
+            relative: 'modules/ROOT/pages/index.adoc',
             abspath: 'modules/ROOT/pages/index.adoc',
             basename: 'index.adoc',
             stem: 'index',
@@ -418,7 +421,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -447,7 +450,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -552,7 +555,7 @@ describe('zip contents collector extension', () => {
         times: 2,
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
           expect(downloadLog.length).to.equal(2)
           expect(downloadLog[0].statusCode).to.equal(200)
           expect(downloadLog[1].statusCode).to.equal(304)
@@ -579,7 +582,7 @@ describe('zip contents collector extension', () => {
         times: 2,
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
           expect(downloadLog.length).to.equal(4)
           expect(downloadLog[0].statusCode).to.equal(404)
           expect(downloadLog[1].statusCode).to.equal(200)
@@ -610,7 +613,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -632,7 +635,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
@@ -662,7 +665,7 @@ describe('zip contents collector extension', () => {
 
             This is the real deal.
           `
-          expect(contentAggregate[0].files[0].contents.toString()).to.equal(expectedContents + '\n')
+          expect(contentAggregate[0].files[0].contents.toString().replace(/\r/g, '')).to.equal(expectedContents + '\n')
           expect(contentAggregate[0].files[0].stat).to.not.equal(originalStat)
           expect(contentAggregate[0].files[0].stat.size).to.not.equal(originalStat.size)
           expect(contentAggregate[0].files[0].src).to.not.have.property('scanned')
@@ -690,13 +693,12 @@ describe('zip contents collector extension', () => {
           expect(contentAggregate[0].files).to.have.lengthOf(0)
           const files = contentCatalog.getFiles()
           const src = files[0].src
-          expect(files.filter((file) => file.path === 'api/java/README')).to.have.lengthOf(1)
-          expect(files.filter((file) => file.path === 'api/java/javadoc.css')).to.have.lengthOf(1)
-          expect(files.filter((file) => file.path === 'api/java/javadoc.html')).to.have.lengthOf(1)
+          expect(files.filter((file) => file.src.path === 'api/java/README')).to.have.lengthOf(1)
+          expect(files.filter((file) => file.src.path === 'api/java/javadoc.css')).to.have.lengthOf(1)
+          expect(files.filter((file) => file.src.path === 'api/java/javadoc.html')).to.have.lengthOf(1)
           expect(src.module).to.be.equal('ROOT')
           expect(src.family).to.be.equal('page')
           expect(src.component).to.be.equal('test')
-          expect(src.relative).to.be.equal('api/java/README')
         },
       })
     })
@@ -719,13 +721,12 @@ describe('zip contents collector extension', () => {
           expect(contentAggregate[0].files).to.have.lengthOf(0)
           const files = contentCatalog.getFiles()
           const src = files[0].src
-          expect(files.filter((file) => file.path === 'api/java/README')).to.have.lengthOf(1)
-          expect(files.filter((file) => file.path === 'api/java/javadoc.css')).to.have.lengthOf(1)
-          expect(files.filter((file) => file.path === 'api/java/javadoc.html')).to.have.lengthOf(1)
+          expect(files.filter((file) => file.src.path === 'api/java/README')).to.have.lengthOf(1)
+          expect(files.filter((file) => file.src.path === 'api/java/javadoc.css')).to.have.lengthOf(1)
+          expect(files.filter((file) => file.src.path === 'api/java/javadoc.html')).to.have.lengthOf(1)
           expect(src.module).to.be.equal('mymodule')
           expect(src.family).to.be.equal('page')
           expect(src.component).to.be.equal('test')
-          expect(src.relative).to.be.equal('api/java/README')
         },
       })
     })
@@ -794,7 +795,7 @@ describe('zip contents collector extension', () => {
         after: ({ uiCatalog }) => {
           const layouts = uiCatalog.findByType('layout')
           expect(layouts).to.have.lengthOf(1)
-          expect(layouts[0].path).to.be.equal('layouts/bare.hbs')
+          expect(posixify(layouts[0].path)).to.be.equal('layouts/bare.hbs')
         },
       })
     })
@@ -821,7 +822,7 @@ describe('zip contents collector extension', () => {
         after: ({ uiCatalog }) => {
           const layouts = uiCatalog.findByType('layout')
           expect(layouts).to.have.lengthOf(1)
-          expect(layouts[0].path).to.be.equal('layouts/bare.hbs')
+          expect(posixify(layouts[0].path)).to.be.equal('layouts/bare.hbs')
           expect(layouts[0].contents.toString()).to.be.equal('test')
         },
       })
@@ -845,7 +846,7 @@ describe('zip contents collector extension', () => {
         },
         after: ({ contentAggregate }) => {
           expect(contentAggregate[0].files).to.have.lengthOf(1)
-          expect(contentAggregate[0].files[0].path).to.equal('modules/ROOT/pages/index.adoc')
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
         },
       })
     })
