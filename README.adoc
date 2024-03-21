@@ -226,6 +226,21 @@ antora:
     - url: https://repo.example.com/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
 ----
 
+You can also configure basic auth by using `username` and `password` configuration:
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    version_file: gradle.properties
+    username: me
+    password: ${env.MY_SECRET_PASSWORD}"
+    locations:
+    - url: https://repo.example.com/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
+----
+
 
 
 === Local Files

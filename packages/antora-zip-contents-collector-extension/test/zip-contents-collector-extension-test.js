@@ -455,6 +455,32 @@ describe('zip contents collector extension', () => {
       })
     })
 
+    it('should download zip and collect files with global username / password', async () => {
+      process.env.MY_PASSWORD = 'secret'
+      const extensionConfig = () => ({
+        username: 'admin',
+        password: 'secret',
+        locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
+      })
+      const componentConfig = { include: ['start-page'] }
+      await runScenario({
+        repoName: 'test-at-root',
+        extensionConfig,
+        componentConfig,
+        zipFiles: ['start-page'],
+        httpPath: '/',
+        httpUsers: { admin: 'secret' },
+        before: ({ contentAggregate }) => {
+          expect(contentAggregate).to.have.lengthOf(1)
+          expect(contentAggregate[0].files).to.be.empty()
+        },
+        after: ({ contentAggregate }) => {
+          expect(contentAggregate[0].files).to.have.lengthOf(1)
+          expect(contentAggregate[0].files[0].src.path).to.equal('modules/ROOT/pages/index.adoc')
+        },
+      })
+    })
+
     it('should update component metadata from antora.yml file, if found in root', async () => {
       const extensionConfig = () => ({
         locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],

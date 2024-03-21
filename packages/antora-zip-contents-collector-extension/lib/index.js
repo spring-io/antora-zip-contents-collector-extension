@@ -183,7 +183,13 @@ function register ({ config, downloadLog }) {
     for (const location of locations) {
       if (considerLocation(location, versionClassification)) {
         const url = resolvePlaceholders(location.url, locationVariables)
+        const username = location.username || config.username
+        const password = location.password || config.password
         const httpHeaders = { ...config.httpHeaders, ...location.httpHeaders }
+        if (username || password) {
+          const credentials = Buffer.from(`${username ?? ''}:${password ?? ''}`).toString('base64')
+          httpHeaders.Authorization = `Basic ${credentials}`
+        }
         if (['http:', 'https:'].some((prefix) => url.toLowerCase().startsWith(prefix))) {
           try {
             return await download(name, url, httpHeaders, downloadCacheDir, downloadLog)
