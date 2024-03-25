@@ -243,7 +243,7 @@ function register ({ config, downloadLog }) {
   }
 
   function extractVersion (versionFile, contents) {
-    logger.trace(`Extracting version from '${versionFile}' with contents '${contents}' `)
+    logger.trace(`Extracting version from '${versionFile}'`)
     if (versionFile.toLowerCase().endsWith('gradle.properties')) {
       const match = gradleVersionRegex.exec(contents)
       const version = match && match[1]
