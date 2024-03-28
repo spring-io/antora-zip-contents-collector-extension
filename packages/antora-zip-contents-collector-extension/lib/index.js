@@ -11,7 +11,7 @@ const mimeTypes = require('mime-types')
 const { concat: get } = require('simple-get')
 const { pipeline, Transform, Writable } = require('stream')
 const Vinyl = require('vinyl')
-const vzip = require('@vscode/gulp-vinyl-zip')
+const vzip = require('../lib/util/vzip-patch.js')
 const { XMLParser } = require('fast-xml-parser')
 const yaml = require('js-yaml')
 
@@ -335,9 +335,8 @@ function register ({ config, downloadLog }) {
 
   function doWithZipContents (zipFile, action) {
     return new Promise((resolve, reject) => {
-      vzip
-        .src(zipFile)
-        .on('error', (err) => reject(Object.assign(err, { message: `not a valid zip file; ${err.message}` })))
+      vzip(zipFile)
+        .on('error', (err) => reject(new Error(`Error unzipping ${zipFile}: ${err.message}`, { cause: err })))
         .pipe(bufferizeContents())
         .on('error', reject)
         .pipe(
@@ -346,6 +345,7 @@ function register ({ config, downloadLog }) {
             (done) => done() || resolve()
           )
         )
+        .on('error', reject)
     })
   }
 

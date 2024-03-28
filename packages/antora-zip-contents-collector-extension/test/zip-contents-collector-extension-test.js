@@ -877,6 +877,24 @@ describe('zip contents collector extension', () => {
       })
     })
 
+    it('should error on bad zip file', async () => {
+      const extensionConfig = () => ({
+        locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
+      })
+      const componentConfig = { include: ['bad-file'] }
+      expect(
+        await trapAsyncError(() =>
+          runScenario({
+            repoName: 'test-at-root',
+            extensionConfig,
+            componentConfig,
+            zipFiles: ['bad-file'],
+            httpPath: '/',
+          })
+        )
+      ).to.throw('Error unzipping')
+    })
+
     async function runScenario ({
       repoName,
       branches,
