@@ -49,7 +49,7 @@
     "@vscode/gulp-vinyl-zip": "^2.5.0",
     "archiver": "^6.0.1",
     "downdoc": "^1.0.2-stable",
-    "express": "^4.18.2",
+    "express": "^4.19.2",
     "express-basic-auth": "^1.2.1",
     "fast-xml-parser": "^4.3.4",
     "simple-get": "^4.0.1"
