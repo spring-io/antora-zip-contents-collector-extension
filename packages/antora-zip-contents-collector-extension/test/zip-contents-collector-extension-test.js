@@ -459,7 +459,7 @@ describe('zip contents collector extension', () => {
       process.env.MY_PASSWORD = 'secret'
       const extensionConfig = () => ({
         username: 'admin',
-        password: 'secret',
+        password: '${env.MY_PASSWORD}',
         locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
       })
       const componentConfig = { include: ['start-page'] }

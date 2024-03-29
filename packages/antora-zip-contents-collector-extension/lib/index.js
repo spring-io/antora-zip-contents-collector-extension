@@ -183,8 +183,8 @@ function register ({ config, downloadLog }) {
     for (const location of locations) {
       if (considerLocation(location, versionClassification)) {
         const url = resolvePlaceholders(location.url, locationVariables)
-        const username = location.username || config.username
-        const password = location.password || config.password
+        const username = resolvePlaceholders(location.username || config.username)
+        const password = resolvePlaceholders(location.password || config.password)
         const httpHeaders = { ...config.httpHeaders, ...location.httpHeaders }
         if (username || password) {
           const credentials = Buffer.from(`${username ?? ''}:${password ?? ''}`).toString('base64')
@@ -318,11 +318,13 @@ function register ({ config, downloadLog }) {
   }
 
   function resolveHeaderPlaceholders (headers) {
-    const variables = { env: process.env }
-    return Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, resolvePlaceholders(v, variables)]))
+    return Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, resolvePlaceholders(v)]))
   }
 
   function resolvePlaceholders (str, variables) {
+    if (!str) return str
+    variables = variables || {}
+    variables = { ...variables, env: process.env }
     return str.replace(/\${(.*?)}/g, (match, name) => {
       const parts = name.split('.')
       let result = variables
