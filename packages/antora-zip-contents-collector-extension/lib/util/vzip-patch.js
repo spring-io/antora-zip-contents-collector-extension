@@ -28,7 +28,6 @@ function mtimeFromEntry (entry) {
 }
 
 function toStream (zip) {
-  console.log('doing to zip')
   const result = through()
   const q = queue()
   let didErr = false
@@ -122,7 +121,6 @@ function toStream (zip) {
     }
   })
 
-  console.log('Returned zip retult')
   return result
 }
 
@@ -136,7 +134,6 @@ function unzipFile (zipPath) {
       .on('error', (err) => result.emit('error', err))
       .pipe(result)
   })
-  console.log('returned result')
   return result
 }
 
