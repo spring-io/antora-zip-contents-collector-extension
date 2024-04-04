@@ -1,6 +1,6 @@
 {
     "name": "@springio/antora-zip-contents-collector-extension",
-    "version": "1.0.0-alpha.6",
+    "version": "1.0.0-alpha.7",
     "description": "An Antora extension that runs a collects the content from local or remote zip files.",
     "license": "Apache-2.0",
     "author": "Spring (https://spring.io)",
