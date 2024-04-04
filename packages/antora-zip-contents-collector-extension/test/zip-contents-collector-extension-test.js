@@ -509,6 +509,31 @@ describe('zip contents collector extension', () => {
       })
     })
 
+    it('should not change name in component metadata if set in antora.yml', async () => {
+      const extensionConfig = () => ({
+        locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
+      })
+      const componentConfig = { include: ['component-desc-with-bad-name'] }
+      await runScenario({
+        repoName: 'test-at-root',
+        extensionConfig,
+        componentConfig,
+        zipFiles: ['component-desc-with-bad-name'],
+        httpPath: '/',
+        before: ({ contentAggregate }) => {
+          expect(contentAggregate).to.have.lengthOf(1)
+          const bucket = contentAggregate[0]
+          expect(bucket.version).to.equal('main')
+          expect(bucket.files).to.be.empty()
+        },
+        after: ({ contentAggregate }) => {
+          expect(contentAggregate).to.have.lengthOf(1)
+          const bucket = contentAggregate[0]
+          expect(bucket.name).to.equal('test')
+        },
+      })
+    })
+
     it('should update component metadata from antora.yml file, if found in modules', async () => {
       const extensionConfig = () => ({
         locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],

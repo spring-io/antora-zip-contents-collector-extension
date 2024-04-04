@@ -374,6 +374,9 @@ function register ({ config, downloadLog }) {
     const existing = componentVersionBucket.files.find((candidate) => candidate.src.path === file.src.path)
     if (file.src.path === 'antora.yml' || file.src.path === 'modules/antora.yml') {
       const generated = yaml.load(file.contents)
+      if (generated.name && componentVersionBucket.name !== generated.name) {
+        delete generated.name
+      }
       Object.assign(componentVersionBucket, generated)
       if (!('prerelease' in generated)) delete componentVersionBucket.prerelease
     } else if (existing) {

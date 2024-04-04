@@ -1,0 +1,6 @@
+name: bad
+version: 1.0.0
+title: Test
+asciidoc:
+  attributes:
+    url-api: https://api.example.org
