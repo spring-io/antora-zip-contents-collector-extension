@@ -728,7 +728,7 @@ describe('zip contents collector extension', () => {
       const extensionConfig = () => ({
         locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
       })
-      const componentConfig = { include: [{ name: 'javadoc', destination: 'content-catalog', path: 'api/java' }] }
+      const componentConfig = { include: [{ name: 'javadoc', destination: 'content_catalog', path: 'api/java' }] }
       await runScenario({
         repoName: 'test-at-root',
         extensionConfig,
@@ -759,7 +759,7 @@ describe('zip contents collector extension', () => {
         locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
       })
       const componentConfig = {
-        include: [{ name: 'javadoc', destination: 'content-catalog', module: 'mymodule', path: 'api/java' }],
+        include: [{ name: 'javadoc', destination: 'content_catalog', module: 'mymodule', path: 'api/java' }],
       }
       await runScenario({
         repoName: 'test-at-root',

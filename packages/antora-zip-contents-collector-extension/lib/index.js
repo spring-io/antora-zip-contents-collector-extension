@@ -65,7 +65,7 @@ function register ({ config, downloadLog }) {
         }
       }
     }
-    // Once the version is set we can collect content-catalog includes
+    // Once the version is set we can collect content_catalog includes
     for (const componentVersionBucket of contentAggregate) {
       const key = componentVersionBucket.version + '@' + componentVersionBucket.name
       for (const origin of componentVersionBucket.origins) {
@@ -117,7 +117,10 @@ function register ({ config, downloadLog }) {
     const includes = getIncludes(
       config,
       origin,
-      (include) => include.destination && include.destination.toLowerCase() === 'content-catalog'
+      (include) =>
+        include.destination &&
+        (include.destination.toLowerCase() === 'content_catalog' ||
+          include.destination.toLowerCase() === 'content-catalog')
     )
     logger.trace(`Collecting '${origin.refname}' content catalog includes ${includes.map((include) => include.name)}`)
     await doWithIncludes(config, downloadLog, collectorCacheDir, version, includes, (include, zipFile, file) =>
