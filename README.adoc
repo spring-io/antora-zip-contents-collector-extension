@@ -349,3 +349,26 @@ antora:
       module: my-module
       path: api/java
 ----
+
+
+=== Dealing With "HTTP 404 Not Found" Errors for Snapshots
+Branches that refer to snapshot versions of zip files will encounter 404 errors if artifacts have not been published.
+This is commonly encountered when a version is bumped as the git commit needs to occur before CI can run and publish zip files.
+
+In order to deal with this situation, the Antora Zip Contents Collector extension can drop content for snapshot versions if the content cannot be found.
+To enable this feature, set `on_missing_snapshot_zip` to `drop_content`:
+
+.antora-playbook.yml
+[,yaml]
+----
+antora:
+  extensions:
+  - require: '@springio/antora-zip-contents-collector-extension'
+    on_missing_snapshot_zip: drop_content
+----
+
+Content will only be dropped when _all_ of the following conditions are satisfied:
+
+* The content is being build from a branch and not a tag
+* The version number ends with `-SNAPSHOT`
+* The feature has been configured by setting `on_missing_snapshot_zip` to `drop_content`

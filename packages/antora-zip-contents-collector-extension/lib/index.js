@@ -27,27 +27,40 @@ const CACHE_RETENTION = 60 * DAYS
 function register ({ config, downloadLog }) {
   const logger = this.getLogger('zip-contents-collector-extension')
   const catalogIncludes = new Map()
-  this.once('contentAggregated', (contextVariables) => contentAggregated(contextVariables, config, downloadLog))
-  this.once('contentClassified', (contextVariables) => contentClassified(contextVariables, config, downloadLog))
-  this.once('uiLoaded', (contextVariables) => uiLoaded(contextVariables))
+  this.once('contentAggregated', (contextVariables) =>
+    contentAggregated.call(this, contextVariables, config, downloadLog)
+  )
+  this.once('contentClassified', (contextVariables) =>
+    contentClassified.call(this, contextVariables, config, downloadLog)
+  )
+  this.once('uiLoaded', (contextVariables) => uiLoaded.call(this, contextVariables))
 
   async function contentAggregated ({ playbook, contentAggregate }, config, downloadLog) {
     logger.trace('Checking content aggregate for zip contents collector includes')
     const collectorCacheDir = await getCollectorCacheDir(playbook)
     logger.trace(`Using cache dir ${collectorCacheDir}`)
+    const componentVersionBucketsToDrop = []
     // First apply content-aggregate includes since they may update the version
     for (const componentVersionBucket of contentAggregate) {
       for (const origin of componentVersionBucket.origins) {
-        const includes = getIncludes(
-          config,
-          origin,
-          (include) => !include.destination || include.destination.toLowerCase() === 'content-aggregate'
-        )
-        if (includes.length > 0) {
-          logger.trace(`Adding '${origin.refname}' aggregate includes ${includes.map((include) => include.name)}`)
-          const version = await readVersion(origin, config.versionFile)
-          await addIncludes(config, downloadLog, collectorCacheDir, version, includes, (include, zipFile, file) =>
-            addToContentAggregate(componentVersionBucket, include, zipFile, file)
+        const version = await readVersion(origin, config.versionFile)
+        try {
+          await addContentAggregateIncludes(
+            config,
+            downloadLog,
+            origin,
+            version,
+            collectorCacheDir,
+            componentVersionBucket
+          )
+        } catch (error) {
+          handleContentAggregatedError(
+            config,
+            origin,
+            version,
+            componentVersionBucket,
+            error,
+            componentVersionBucketsToDrop
           )
         }
       }
@@ -56,20 +69,96 @@ function register ({ config, downloadLog }) {
     for (const componentVersionBucket of contentAggregate) {
       const key = componentVersionBucket.version + '@' + componentVersionBucket.name
       for (const origin of componentVersionBucket.origins) {
-        const includes = getIncludes(
-          config,
-          origin,
-          (include) => include.destination && include.destination.toLowerCase() === 'content-catalog'
-        )
-        if (includes.length > 0) {
-          logger.trace(
-            `Storing '${origin.refname}' content includes [${includes.map((include) => include.name)}] under '${key}'`
+        const version = await readVersion(origin, config.versionFile)
+        try {
+          await collectContentCatalogIncludes(config, downloadLog, collectorCacheDir, origin, version, key)
+        } catch (error) {
+          handleContentAggregatedError(
+            config,
+            origin,
+            version,
+            componentVersionBucket,
+            error,
+            componentVersionBucketsToDrop
           )
-          const includesForKey = (catalogIncludes.has(key) ? catalogIncludes : catalogIncludes.set(key, [])).get(key)
-          includesForKey.push(...includes)
         }
       }
     }
+    if (componentVersionBucketsToDrop.length > 0) {
+      const updatedContentAggregate = contentAggregate.filter(
+        (candidate) => !componentVersionBucketsToDrop.includes(candidate)
+      )
+      this.updateVariables({ contentAggregate: updatedContentAggregate })
+    }
+  }
+
+  async function addContentAggregateIncludes (
+    config,
+    downloadLog,
+    origin,
+    version,
+    collectorCacheDir,
+    componentVersionBucket
+  ) {
+    const includes = getIncludes(
+      config,
+      origin,
+      (include) => !include.destination || include.destination.toLowerCase() === 'content-aggregate'
+    )
+    if (includes.length > 0) {
+      logger.trace(`Adding '${origin.refname}' aggregate includes ${includes.map((include) => include.name)}`)
+      await doWithIncludes(config, downloadLog, collectorCacheDir, version, includes, (include, zipFile, file) =>
+        addToContentAggregate(componentVersionBucket, include, zipFile, file)
+      )
+    }
+  }
+
+  async function collectContentCatalogIncludes (config, downloadLog, collectorCacheDir, origin, version, key) {
+    const includes = getIncludes(
+      config,
+      origin,
+      (include) => include.destination && include.destination.toLowerCase() === 'content-catalog'
+    )
+    logger.trace(`Collecting '${origin.refname}' content catalog includes ${includes.map((include) => include.name)}`)
+    await doWithIncludes(config, downloadLog, collectorCacheDir, version, includes, (include, zipFile, file) =>
+      logger.trace(`Prepared ${file.path} for addition to content catalog`)
+    )
+    if (includes.length > 0) {
+      logger.trace(
+        `Storing '${origin.refname}' content includes [${includes.map((include) => include.name)}] under '${key}'`
+      )
+      const includesForKey = (catalogIncludes.has(key) ? catalogIncludes : catalogIncludes.set(key, [])).get(key)
+      includesForKey.push(...includes)
+    }
+  }
+
+  function handleContentAggregatedError (
+    config,
+    origin,
+    version,
+    componentVersionBucket,
+    error,
+    componentVersionBucketsToDrop
+  ) {
+    if (config.onMissingSnapshotZip === 'drop_content') {
+      logger.trace(`Considering if '${origin.refname}' content can be dropped`)
+      if (origin.reftype === 'branch' && version && version.endsWith('-SNAPSHOT') && isHttpNotFoundError(error)) {
+        logger.trace(`Dropping '${origin.refname}' content for due to HTTP not found error`)
+        componentVersionBucketsToDrop.push(componentVersionBucket)
+        return
+      }
+    }
+    throw error
+  }
+
+  function isHttpNotFoundError (error) {
+    if (error && error.name === 'HTTPError' && error.statusCode === 404) {
+      return true
+    }
+    if (error instanceof AggregateError) {
+      return error.errors.every((candidate) => isHttpNotFoundError(candidate))
+    }
+    return false
   }
 
   async function contentClassified ({ playbook, contentCatalog }, config, downloadLog) {
@@ -80,7 +169,7 @@ function register ({ config, downloadLog }) {
         const includes = catalogIncludes.get(key)
         if (includes && includes.length > 0) {
           logger.trace(`Adding '${key}' content includes [${includes.map((include) => include.name)}]`)
-          await addIncludes(
+          await doWithIncludes(
             config,
             downloadLog,
             collectorCacheDir,
@@ -138,12 +227,12 @@ function register ({ config, downloadLog }) {
     return includes
   }
 
-  async function addIncludes (config, downloadLog, collectorCacheDir, version, includes, action) {
+  async function doWithIncludes (config, downloadLog, collectorCacheDir, version, includes, action) {
     for (const include of includes) {
       const { name, origin } = include
       const versionClassification = classifyVersion(version)
       logger.trace(
-        `Adding zip contents include '${name}' to ${origin.reftype} '${origin.refname}'${
+        `Processing zip contents include '${name}' to ${origin.reftype} '${origin.refname}'${
           version ? ' (' + version + ')' : ''
         }`
       )
@@ -309,7 +398,7 @@ function register ({ config, downloadLog }) {
     if (response.statusCode !== 200) {
       const message = `Unable to download '${url}' due to HTTP response code ${response.statusCode} (${response.statusMessage})`
       logger.trace(message)
-      throw Object.assign(new Error(message), { name: 'HTTPError' })
+      throw Object.assign(new Error(message), { name: 'HTTPError', statusCode: response.statusCode })
     }
     await fsp.writeFile(file, contents)
     await fsp.writeFile(cacheFile, JSON.stringify(cache))

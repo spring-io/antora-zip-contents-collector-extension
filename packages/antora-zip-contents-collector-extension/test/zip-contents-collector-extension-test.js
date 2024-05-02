@@ -810,6 +810,9 @@ describe('zip contents collector extension', () => {
     })
 
     it('should remove older files from cache dir after run', async () => {
+      const extensionConfig = () => ({
+        locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
+      })
       const cacheDir = getCollectorCacheDir()
       let fd
       const newerFile = ospath.join(cacheDir, 'newerfile')
@@ -823,7 +826,7 @@ describe('zip contents collector extension', () => {
       await fsp.utimes(olderFile, time, time)
       expect(newerFile).to.be.a.path()
       expect(olderFile).to.be.a.path()
-      await runScenario({ repoName: 'test-at-root' })
+      await runScenario({ repoName: 'test-at-root', extensionConfig })
       expect(newerFile).to.be.a.path()
       expect(olderFile).to.not.be.a.path()
     })
@@ -920,6 +923,46 @@ describe('zip contents collector extension', () => {
       ).to.throw('Error unzipping')
     })
 
+    it('should drop content when 404 on branch when configured to do so', async () => {
+      const extensionConfig = () => ({
+        versionFile: 'gradle.properties',
+        onMissingSnapshotZip: 'drop_content',
+        locations: [{ url: `http://localhost:${httpServerPort}/v\${version}/\${name}.zip` }],
+      })
+      const componentConfig = { include: ['start-page'] }
+      await runScenario({
+        repoName: 'test-gradle-snapshot-version-file-at-root',
+        tags: ['v1.2.2'],
+        extensionConfig,
+        componentConfig,
+        zipFiles: ['start-page'],
+        httpPath: '/v1.2.2',
+        afterGit: async ({ repo }) => {
+          await git.branch({ ...repo, ref: 'update' })
+          await git.checkout({ ...repo, ref: 'update' })
+          const gradleProperties = ospath.join(repo.dir, 'gradle.properties')
+          let content = await fsp.readFile(gradleProperties, 'utf8')
+          content = content.replace(/1.2.3-SNAPSHOT/g, '1.2.2')
+          await fsp.writeFile(gradleProperties, content, 'utf8')
+          await git.add({ ...repo, filepath: 'gradle.properties' })
+          await git.commit({
+            ...repo,
+            author: { name: 'Tester', email: 'tester@example.org' },
+            message: 'update version',
+          })
+          await git.tag({ ...repo, ref: 'v1.2.2', force: true })
+          await git.deleteBranch({ ...repo, ref: 'update' })
+          console.log('Hello')
+        },
+        after: ({ contentAggregate }) => {
+          expect(contentAggregate).to.have.lengthOf(1)
+          expect(contentAggregate[0].files).to.have.lengthOf(2)
+          const page = contentAggregate[0].files.find((it) => it.src.path === 'modules/ROOT/pages/index.adoc')
+          expect(page).to.be.exist()
+        },
+      })
+    })
+
     async function runScenario ({
       repoName,
       branches,
@@ -934,6 +977,7 @@ describe('zip contents collector extension', () => {
       downloadLog,
       times = 1,
       descriptorVersion = '1.0',
+      afterGit,
       before,
       after,
     }) {
@@ -942,7 +986,7 @@ describe('zip contents collector extension', () => {
       if (httpPath) {
         ;[httpServer, httpServerPort] = await startHttpServer(httpPath, zipDir, httpUsers)
       }
-      const repo = await createRepository({ repoName, branches, tags, startPath, componentConfig })
+      const repo = await createRepository({ repoName, branches, tags, startPath, componentConfig, afterGit })
       const playbook = {
         runtime: { cacheDir: CACHE_DIR, quiet: true },
         content: {
@@ -956,7 +1000,7 @@ describe('zip contents collector extension', () => {
           ],
         },
       }
-      const contentAggregate = await aggregateContent(playbook)
+      let contentAggregate = await aggregateContent(playbook)
       const contentCatalog = new ContentCatalog()
       const uiCatalog = new UiCatalog()
       const descriptor = { name: 'test', version: descriptorVersion }
@@ -972,6 +1016,9 @@ describe('zip contents collector extension', () => {
       })
       for (let index = 0; index < times; index++) {
         await generatorContext.contentAggregated({ playbook, contentAggregate })
+        if (generatorContext?.variables?.contentAggregate) {
+          contentAggregate = generatorContext.variables.contentAggregate
+        }
         await generatorContext.contentClassified({ playbook, contentCatalog })
         await generatorContext.uiLoaded({ uiCatalog })
       }
@@ -981,7 +1028,15 @@ describe('zip contents collector extension', () => {
       }
     }
 
-    async function createRepository ({ repoName, fixture = repoName, branches, tags, startPath, componentConfig }) {
+    async function createRepository ({
+      repoName,
+      fixture = repoName,
+      branches,
+      tags,
+      startPath,
+      componentConfig,
+      afterGit,
+    }) {
       const repo = { dir: ospath.join(REPOS_DIR, repoName), fs }
       const links = []
       const captureLinks = function (src, dest) {
@@ -1026,6 +1081,10 @@ describe('zip contents collector extension', () => {
         for (const tag of tags) await git.tag({ ...repo, ref: tag })
       }
       repo.url = `http://localhost:${gitServerPort}/${repoName}/.git`
+      if (afterGit) {
+        const afterGitParams = { repo }
+        isAsync(afterGit) ? await afterGit(afterGitParams) : afterGit(afterGitParams)
+      }
       return repo
     }
 
@@ -1052,6 +1111,9 @@ describe('zip contents collector extension', () => {
         this[eventName] = fn
       },
       getLogger: logger.getLogger,
+      updateVariables (variables) {
+        this.variables = variables
+      },
     })
 
     const getCollectorCacheDir = () => {
