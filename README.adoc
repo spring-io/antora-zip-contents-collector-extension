@@ -142,7 +142,7 @@ antora:
 
 === Snapshot, Milestone, Release Candidate and Release URLs
 Some projects use different artifact repositories for different version types.
-If you need to specify a different URL based on the version type, you can use add a `for-version-type` key with one of the following values:
+If you need to specify a different URL based on the version type, you can use add a `for_version_type` key with one of the following values:
 
 * `snapshot` - Applies only when `${version}` ends in `-SNAPSHOT`
 * `milestone` - Applies only when `${version}` ends in `-M<N>` (where `<N>` is a number)
@@ -162,9 +162,9 @@ antora:
     version_file: gradle.properties
     locations:
     - url: https://repo.example.com/preview/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
-      for-version-type: [snapshot, milestone, rc]
+      for_version_type: [snapshot, milestone, rc]
     - url: https://repo.example.com/release/com/example/myproject/my-project-docs/${version}/my-project-docs-${version}-${name}.zip
-      for-version-type: release
+      for_version_type: release
 ----
 
 
