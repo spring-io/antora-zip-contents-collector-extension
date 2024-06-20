@@ -40,7 +40,7 @@ function register ({ config, downloadLog }) {
     const collectorCacheDir = await getCollectorCacheDir(playbook)
     logger.trace(`Using cache dir ${collectorCacheDir}`)
     const componentVersionBucketsToDrop = []
-    // First apply content-aggregate includes since they may update the version
+    // First apply content_aggregate includes since they may update the version
     for (const componentVersionBucket of contentAggregate) {
       for (const origin of componentVersionBucket.origins) {
         const version = await readVersion(origin, config.versionFile)
@@ -103,7 +103,10 @@ function register ({ config, downloadLog }) {
     const includes = getIncludes(
       config,
       origin,
-      (include) => !include.destination || include.destination.toLowerCase() === 'content-aggregate'
+      (include) =>
+        !include.destination ||
+        include.destination.toLowerCase() === 'content-aggregate' ||
+        include.destination.toLowerCase() === 'content_aggregate'
     )
     if (includes.length > 0) {
       logger.trace(`Adding '${origin.refname}' aggregate includes ${includes.map((include) => include.name)}`)
