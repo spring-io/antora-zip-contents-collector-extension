@@ -483,6 +483,7 @@ function register ({ config, downloadLog }) {
 
   function addToContentCatalog (contentCatalog, component, version, include, zipFile, file) {
     const moduleName = include.module || 'ROOT'
+    const pageLayout = include.layout || 'bare'
     file = asAntoraFile(include, zipFile, file, include.path, 'application/octet-stream', {
       component: component.name,
       version: version.version,
@@ -490,7 +491,7 @@ function register ({ config, downloadLog }) {
       family: 'page',
     })
     const pageAttributes = {
-      'page-layout': 'bare',
+      'page-layout': pageLayout,
       'page-component-name': component.name,
       'page-component-version': version.version,
       'page-version': version.version,

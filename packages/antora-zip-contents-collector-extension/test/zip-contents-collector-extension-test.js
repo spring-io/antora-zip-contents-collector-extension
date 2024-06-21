@@ -750,6 +750,8 @@ describe('zip contents collector extension', () => {
           expect(src.module).to.be.equal('ROOT')
           expect(src.family).to.be.equal('page')
           expect(src.component).to.be.equal('test')
+          const htmlFile = files.filter((file) => file.src.path === 'api/java/javadoc.html')[0]
+          expect(htmlFile.asciidoc.attributes['page-layout']).to.be.equal('bare')
         },
       })
     })
@@ -778,6 +780,34 @@ describe('zip contents collector extension', () => {
           expect(src.module).to.be.equal('mymodule')
           expect(src.family).to.be.equal('page')
           expect(src.component).to.be.equal('test')
+        },
+      })
+    })
+
+    it('should download zip and collect files when adding to content catalog with layout', async () => {
+      const extensionConfig = () => ({
+        locations: [{ url: `http://localhost:${httpServerPort}/\${name}.zip` }],
+      })
+      const componentConfig = {
+        include: [{ name: 'javadoc', destination: 'content_catalog', path: 'api/java', layout: 'javadoc' }],
+      }
+      await runScenario({
+        repoName: 'test-at-root',
+        extensionConfig,
+        componentConfig,
+        zipFiles: ['javadoc'],
+        httpPath: '/',
+        descriptorVersion: 'main',
+        before: ({ contentAggregate, contentCatalog }) => {
+          expect(contentAggregate).to.have.lengthOf(1)
+          expect(contentAggregate[0].files).to.be.empty()
+        },
+        after: ({ contentAggregate, contentCatalog }) => {
+          expect(contentAggregate[0].files).to.have.lengthOf(0)
+          const files = contentCatalog.getFiles()
+          expect(files.filter((file) => file.src.path === 'api/java/javadoc.html')).to.have.lengthOf(1)
+          const htmlFile = files.filter((file) => file.src.path === 'api/java/javadoc.html')[0]
+          expect(htmlFile.asciidoc.attributes['page-layout']).to.be.equal('javadoc')
         },
       })
     })

@@ -326,6 +326,23 @@ ext:
       path: api/java
 ----
 
+By default, content will be added using a 'bare' page layout which is supported regardless of the UI bundle you use.
+To specify a different page layout, you can use the `layout` attribute:
+
+.antora.yml
+[,yaml]
+----
+name: my-project
+version: true
+# ...
+ext:
+  zip_contents_collector:
+    include:
+    - name: api
+      destination: content_catalog
+      layout: custom
+----
+
 
 
 === Using the Playbook to Include Content
