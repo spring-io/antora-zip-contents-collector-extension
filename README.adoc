@@ -309,7 +309,7 @@ ext:
 
 NOTE: You must ensure that your `antora.yml` files has a valid `version` value after all aggregate zip contents has been merged.
 
-In addition to the `destination`, you can also specify the `module` and `path` properties to merge content to a specific destination:
+In addition to the `destination`, you can also specify the `module` and `path` properties to merge content to a specific location:
 
 .antora.yml
 [,yaml]
