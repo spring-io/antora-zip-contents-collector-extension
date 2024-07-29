@@ -51,7 +51,7 @@
     "downdoc": "^1.0.2-stable",
     "express": "^4.19.2",
     "express-basic-auth": "^1.2.1",
-    "fast-xml-parser": "^4.3.4",
+    "fast-xml-parser": "^4.4.1",
     "simple-get": "^4.0.1"
   }
 }
