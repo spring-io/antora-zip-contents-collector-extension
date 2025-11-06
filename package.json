@@ -46,7 +46,6 @@
   "dependencies": {
     "@antora/content-classifier": "^3.1.7",
     "@antora/ui-loader": "^3.1.4",
-    "@vscode/gulp-vinyl-zip": "^2.5.0",
     "archiver": "^6.0.1",
     "downdoc": "^1.0.2-stable",
     "express": "^4.19.2",
