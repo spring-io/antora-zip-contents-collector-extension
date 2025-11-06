@@ -1,6 +1,7 @@
 'use strict'
 
 const { classifyVersion } = require('../lib/util/version-classifier.js')
+const { ZipReadable } = require('../lib/util/file.js')
 const ospath = require('path')
 const getUserCacheDir = require('cache-directory')
 const expandPath = require('@antora/expand-path-helper')
@@ -9,15 +10,16 @@ const { promises: fsp } = fs
 const git = require('isomorphic-git')
 const mimeTypes = require('mime-types')
 const { concat: get } = require('simple-get')
-const { pipeline, Transform, Writable } = require('stream')
+const { pipeline, PassThrough, Transform, Writable } = require('stream')
 const Vinyl = require('vinyl')
-const vzip = require('../lib/util/vzip-patch.js')
 const { XMLParser } = require('fast-xml-parser')
 const yaml = require('js-yaml')
+const yauzl = require('yauzl')
 
 const forEach = (write, final) => new Writable({ objectMode: true, write, final })
 const map = (transform) => new Transform({ objectMode: true, transform })
 const posixify = ospath.sep === '\\' ? (p) => p.replace(/\\/g, '/') : (p) => p
+const through = () => new PassThrough({ objectMode: true })
 
 const gradleVersionRegex = /^version\s*=\s*(.*)$/m
 
@@ -432,7 +434,7 @@ function register ({ config, downloadLog }) {
 
   function doWithZipContents (zipFile, action) {
     return new Promise((resolve, reject) => {
-      vzip(zipFile)
+      srcZip(zipFile)
         .on('error', (err) => reject(new Error(`Error unzipping ${zipFile}: ${err.message}`, { cause: err })))
         .pipe(bufferizeContents())
         .on('error', reject)
@@ -444,6 +446,15 @@ function register ({ config, downloadLog }) {
         )
         .on('error', reject)
     })
+  }
+
+  function srcZip (file) {
+    const result = through()
+    yauzl.open(file, { lazyEntries: true }, (err, zipFile) => {
+      if (err) return result.emit('error', err)
+      new ZipReadable(zipFile).on('error', (err) => result.emit('error', err)).pipe(result)
+    })
+    return result
   }
 
   function bufferizeContents () {

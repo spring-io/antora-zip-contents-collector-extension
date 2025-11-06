@@ -23,6 +23,7 @@ const git = require('@antora/content-aggregator/git')
 const logger = require('@antora/logger')
 const os = require('os')
 const ospath = require('path')
+const url = require('url')
 const Vinyl = require('vinyl')
 
 const posixify = ospath.sep === '\\' ? (p) => p.replace(/\\/g, '/') : (p) => p
@@ -656,7 +657,9 @@ describe('zip contents collector extension', () => {
         zipFiles: ['start-page'],
         before: async ({ contentAggregate }) => {
           const srcZipFile = ospath.join(tempDir, 'zips', 'start-page.zip')
-          const dest = ospath.join(contentAggregate[0].origins[0].worktree, 'build')
+          const origin = contentAggregate[0].origins[0]
+          const worktree = url.fileURLToPath(origin.url)
+          const dest = ospath.join(worktree, 'build')
           await fsp.mkdir(dest, { recursive: true })
           await fsp.copyFile(srcZipFile, ospath.join(dest, 'start-page.zip'))
           expect(contentAggregate).to.have.lengthOf(1)
@@ -950,7 +953,7 @@ describe('zip contents collector extension', () => {
             httpPath: '/',
           })
         )
-      ).to.throw('Error unzipping')
+      ).to.throw('invalid central directory file header signature')
     })
 
     it('should drop content when 404 on branch when configured to do so', async () => {
@@ -1026,6 +1029,8 @@ describe('zip contents collector extension', () => {
               startPath,
               branches: branches || 'main',
               tags,
+              worktrees: '.',
+              editUrl: true,
             },
           ],
         },
