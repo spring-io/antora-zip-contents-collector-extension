@@ -219,7 +219,7 @@ function register ({ config, downloadLog }) {
   }
 
   function getIncludes (config, origin, filter) {
-    const originConfig = origin.descriptor?.ext?.zipContentsCollector
+    const originConfig = origin.descriptor?.ext?.zip_contents_collector
     const alwaysIncludes = config && asArray(config.alwaysInclude)
     const originIncludes = originConfig && asArray(originConfig.include)
     let includes = alwaysIncludes || []

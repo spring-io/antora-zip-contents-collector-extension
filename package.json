@@ -44,8 +44,8 @@
     "reportDir": "reports"
   },
   "dependencies": {
-    "@antora/content-classifier": "^3.1.7",
-    "@antora/ui-loader": "^3.1.4",
+    "@antora/content-classifier": "^3.2.0-alpha.10",
+    "@antora/ui-loader": "^3.2.0-alpha.10",
     "archiver": "^6.0.1",
     "downdoc": "^1.0.2-stable",
     "express": "^4.19.2",
